@@ -31,7 +31,7 @@ A modern, high-performance Google Chrome extension (Manifest V3) that seamlessly
 ## 📦 How to Install (For You and Your Friends)
 
 ### 1. Download the Extension
-* **Direct Download:** [**Download latest release v1.0.2 (.zip)**](https://github.com/peterko753/smart-link-redirector/archive/refs/tags/v1.0.2.zip)
+* **Direct Download:** [**Download latest release v1.0.3 (.zip)**](https://github.com/peterko753/smart-link-redirector/archive/refs/tags/v1.0.3.zip)
 * *Or clone via git:*
   ```bash
   git clone https://github.com/peterko753/smart-link-redirector.git
@@ -94,6 +94,20 @@ If you have rules configured and want to share them:
 2. Click **Export Rules JSON**.
 3. Send the downloaded `.json` file to your friends.
 4. Your friends can click **Import Rules JSON** to load your exact ruleset instantly.
+
+---
+
+## 🔄 Release History
+
+* **v1.0.3 (Current)**:
+  * **Page Landing Guard**: Instant client-side redirect if landing on a matching page via external or SPA routing.
+  * **Anti-Hijack Click Handler**: Uses `e.stopImmediatePropagation()` to prevent web page scripts (like Next.js/React routers) from overriding redirects.
+  * **Query-Tolerant Exact Matching**: Exact URL rules now cleanly match URLs with trailing slashes, `#hashes`, or tracking queries (like `?source=...`, `?utm_...`).
+  * **SPA Navigation Support**: Added `chrome.webNavigation.onHistoryStateUpdated` for single-page app history state changes.
+* **v1.0.2**:
+  * Cleaned default samples and strengthened `requestDomains` matching.
+* **v1.0.0**:
+  * Initial release with domain swapping, path preservation, live sandbox simulator, and JSON backup.
 
 ---
 
