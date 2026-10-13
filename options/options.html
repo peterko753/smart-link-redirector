@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Link & URL Redirector - Dashboard</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="dashboard-wrapper">
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar">
+      <div class="navbar-left">
+        <img src="../icons/icon-48.png" alt="Extension Logo" class="nav-logo">
+        <div>
+          <h1 class="nav-title">Smart Link & URL Redirector</h1>
+          <p class="nav-subtitle">Chrome Manifest V3 Network & Link Redirection Engine</p>
+        </div>
+      </div>
+      <div class="navbar-right">
+        <div class="engine-badge" id="engine-status-badge">
+          <span class="indicator-dot"></span>
+          <span class="badge-text">DNR Engine Active</span>
+        </div>
+        <div class="master-control">
+          <span class="master-label">Master Switch</span>
+          <label class="switch">
+            <input type="checkbox" id="master-toggle" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-main">
+      <!-- Metric Cards -->
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon cyan">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Total Rules</span>
+            <span class="metric-value" id="metric-total-rules">0</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon green">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Active Redirects</span>
+            <span class="metric-value" id="metric-active-rules">0</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon purple">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Performance</span>
+            <span class="metric-value">0ms (Native)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- URL Sandbox & Simulator Card -->
+      <section class="card sandbox-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2 class="card-title">Live URL Redirect Simulator</h2>
+            <p class="card-desc">Verify how any link or URL behaves with your active rules before using it in Chrome.</p>
+          </div>
+        </div>
+        <div class="sandbox-body">
+          <div class="sandbox-input-wrapper">
+            <input type="text" id="sandbox-input" placeholder="Enter URL to test (e.g. originaldomain.com/aaa/bbb?token=123)" spellcheck="false">
+            <button id="sandbox-test-btn" class="btn btn-primary">Simulate</button>
+          </div>
+          <div id="sandbox-output" class="sandbox-output hidden">
+            <div class="flow-container">
+              <div class="flow-box original-box">
+                <span class="flow-tag">INPUT URL</span>
+                <span class="flow-url" id="sim-input-url"></span>
+              </div>
+              <div class="flow-connector">
+                <span class="connector-arrow">➔</span>
+                <span class="connector-badge" id="sim-matched-rule">Matched Rule</span>
+              </div>
+              <div class="flow-box destination-box">
+                <span class="flow-tag">DESTINATION URL</span>
+                <span class="flow-url" id="sim-output-url"></span>
+                <a id="sim-open-link" href="#" target="_blank" class="sim-link">Open in new tab ↗</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Create / Edit Rule Form -->
+      <section class="card editor-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2 class="card-title" id="form-card-title">Add New Redirect Rule</h2>
+            <p class="card-desc">Configure link interception and destination parameters.</p>
+          </div>
+          <button id="cancel-edit-btn" class="btn btn-secondary btn-sm hidden">Cancel Edit</button>
+        </div>
+
+        <form id="rule-form" class="rule-form">
+          <input type="hidden" id="edit-rule-id">
+
+          <!-- Type Selector Tabs -->
+          <div class="type-selector">
+            <button type="button" class="type-btn active" data-type="domain_swap">
+              <span class="type-btn-title">Domain Swap</span>
+              <span class="type-btn-desc">Swaps domain & preserves /path/query</span>
+            </button>
+            <button type="button" class="type-btn" data-type="exact">
+              <span class="type-btn-title">Exact URL</span>
+              <span class="type-btn-desc">Redirects a specific URL to another</span>
+            </button>
+            <button type="button" class="type-btn" data-type="regex">
+              <span class="type-btn-title">Regex Match</span>
+              <span class="type-btn-desc">Advanced regex with capture groups (\1)</span>
+            </button>
+          </div>
+
+          <!-- Rule Name -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="rule-name">Rule Friendly Name (Optional)</label>
+              <input type="text" id="rule-name" placeholder="e.g. My Website Redirect">
+            </div>
+          </div>
+
+          <!-- Dynamic Fields: Domain Swap -->
+          <div id="fields-domain-swap" class="type-fields-group">
+            <div class="callout callout-info">
+              <strong>Path Preservation Note:</strong> When configured, visiting <code>https://originaldomain.com/aaa/bbb?param=1</code> will automatically redirect to <code>https://newdomain.com/aaa/bbb?param=1</code> with zero data loss.
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="field-source-domain">Original Domain</label>
+                <input type="text" id="field-source-domain" placeholder="e.g. originaldomain.com" spellcheck="false">
+                <span class="field-hint">Accepts domain with or without http(s)://</span>
+              </div>
+              <div class="form-group flex-1">
+                <label for="field-target-domain">Target Domain</label>
+                <input type="text" id="field-target-domain" placeholder="e.g. newdomain.com" spellcheck="false">
+                <span class="field-hint">The new destination domain</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Fields: Exact URL -->
+          <div id="fields-exact" class="type-fields-group hidden">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="field-source-url">Exact Source URL</label>
+                <input type="text" id="field-source-url" placeholder="https://example.com/old-page" spellcheck="false">
+              </div>
+              <div class="form-group flex-1">
+                <label for="field-target-url">Target URL</label>
+                <input type="text" id="field-target-url" placeholder="https://example.com/new-page" spellcheck="false">
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Fields: Regex -->
+          <div id="fields-regex" class="type-fields-group hidden">
+            <div class="callout callout-info">
+              <strong>Regex Pattern & Substitution:</strong> Use <code>\1</code>, <code>\2</code> in the replacement string to preserve matched capture groups.
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="field-regex-pattern">Regex Filter Pattern</label>
+                <input type="text" id="field-regex-pattern" placeholder="^https?://(?:www\.)?originaldomain\.com/(.*)" spellcheck="false">
+              </div>
+              <div class="form-group flex-1">
+                <label for="field-regex-sub">Regex Substitution</label>
+                <input type="text" id="field-regex-sub" placeholder="https://newdomain.com/\1" spellcheck="false">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-footer">
+            <button type="submit" id="save-rule-submit-btn" class="btn btn-primary">Save & Apply Rule</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Rules Table Section -->
+      <section class="card rules-table-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2 class="card-title">Configured Rules</h2>
+            <p class="card-desc">Manage, enable, edit, or delete existing redirection rules.</p>
+          </div>
+          <div class="table-search-group">
+            <input type="text" id="rules-search-input" placeholder="Search rules..." spellcheck="false">
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="rules-table">
+            <thead>
+              <tr>
+                <th width="70">Status</th>
+                <th>Rule Name</th>
+                <th width="110">Type</th>
+                <th>Source Pattern</th>
+                <th>Destination</th>
+                <th width="120" class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rules-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+          <div id="table-empty-state" class="table-empty hidden">
+            <p>No redirect rules match your search.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Import / Export & Backup -->
+      <section class="card backup-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2 class="card-title">Backup & Presets</h2>
+            <p class="card-desc">Export your configurations as JSON or import backup files.</p>
+          </div>
+        </div>
+        <div class="backup-actions">
+          <button id="export-json-btn" class="btn btn-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Rules JSON
+          </button>
+          <label class="btn btn-secondary file-upload-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import Rules JSON
+            <input type="file" id="import-json-file" accept=".json" class="hidden">
+          </label>
+          <button id="load-presets-btn" class="btn btn-outline">Load Sample Rules</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../rules-engine.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
