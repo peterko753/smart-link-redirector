@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Smart Link & URL Redirector",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Seamlessly redirect URLs and links with automatic path preservation, domain swapping, and custom rules.",
   "icons": {
     "16": "icons/icon-16.png",

@@ -1,11 +1,26 @@
 /**
  * Smart Link & URL Redirector - Content Script
- * Intercepts in-page link clicks directly at the DOM level
+ * Intercepts in-page link clicks directly at the DOM level and enforces page-level redirects
  */
 
 (function () {
   let cachedRules = [];
   let cachedMasterEnabled = true;
+
+  // Check if current page itself matches a redirect rule
+  function checkCurrentPage() {
+    if (!cachedMasterEnabled || !cachedRules.length) return;
+    try {
+      const currentUrl = window.location.href;
+      const sim = simulateRedirect(currentUrl, cachedRules, cachedMasterEnabled);
+      if (sim.redirected && sim.finalUrl && sim.finalUrl !== currentUrl) {
+        console.log('[Redirector] Page matches redirect rule, redirecting to:', sim.finalUrl);
+        window.location.replace(sim.finalUrl);
+      }
+    } catch (err) {
+      // Ignore URL parsing errors
+    }
+  }
 
   // Initialize rules cache from storage
   async function loadConfig() {
@@ -14,9 +29,10 @@
       if (data) {
         cachedRules = Array.isArray(data.rules) ? data.rules : [];
         cachedMasterEnabled = typeof data.isMasterEnabled === 'boolean' ? data.isMasterEnabled : true;
+        checkCurrentPage();
       }
     } catch (e) {
-      // Storage access error or extension context invalidated
+      // Storage access error
     }
   }
 
@@ -31,23 +47,27 @@
       if (changes.isMasterEnabled) {
         cachedMasterEnabled = changes.isMasterEnabled.newValue;
       }
+      checkCurrentPage();
     }
   });
 
-  // Intercept click on links
-  document.addEventListener('click', (e) => {
+  // Intercept click & middle-click on links with capturing phase
+  function handleLinkClick(e) {
     if (!cachedMasterEnabled || !cachedRules.length) return;
 
     const anchor = e.target.closest('a');
-    if (!anchor || !anchor.href) return;
+    if (!anchor) return;
 
-    // Check if the link URL matches any redirect rule
-    const sim = simulateRedirect(anchor.href, cachedRules, cachedMasterEnabled);
-    if (sim.redirected && sim.finalUrl && sim.finalUrl !== anchor.href) {
+    // Check original URL if it was rewritten on hover, or attribute href, or property href
+    const checkUrl = anchor.dataset.originalHref || anchor.getAttribute('href') || anchor.href;
+    if (!checkUrl) return;
+
+    const sim = simulateRedirect(checkUrl, cachedRules, cachedMasterEnabled);
+    if (sim.redirected && sim.finalUrl) {
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
 
-      // Check if user clicked to open in a new tab
       const isNewTab = e.ctrlKey || e.metaKey || e.button === 1 || anchor.target === '_blank';
       if (isNewTab) {
         window.open(sim.finalUrl, '_blank');
@@ -55,19 +75,41 @@
         window.location.href = sim.finalUrl;
       }
     }
-  }, true);
+  }
+
+  document.addEventListener('click', handleLinkClick, true);
+  document.addEventListener('auxclick', handleLinkClick, true);
 
   // Preview rewrite on mouseover / hover so browser status bar shows target URL
   document.addEventListener('mouseover', (e) => {
     if (!cachedMasterEnabled || !cachedRules.length) return;
 
     const anchor = e.target.closest('a');
-    if (!anchor || !anchor.href || anchor.dataset.redirectChecked) return;
+    if (!anchor) return;
+
+    const checkUrl = anchor.dataset.originalHref || anchor.getAttribute('href') || anchor.href;
+    if (!checkUrl || anchor.dataset.redirectChecked) return;
     anchor.dataset.redirectChecked = '1';
 
-    const sim = simulateRedirect(anchor.href, cachedRules, cachedMasterEnabled);
-    if (sim.redirected && sim.finalUrl && sim.finalUrl !== anchor.href) {
+    const sim = simulateRedirect(checkUrl, cachedRules, cachedMasterEnabled);
+    if (sim.redirected && sim.finalUrl && sim.finalUrl !== checkUrl) {
+      anchor.dataset.originalHref = checkUrl;
       anchor.href = sim.finalUrl;
     }
   }, true);
+
+  // Intercept Single Page App (SPA) in-page history navigations
+  const originalPushState = history.pushState;
+  history.pushState = function () {
+    originalPushState.apply(this, arguments);
+    checkCurrentPage();
+  };
+
+  const originalReplaceState = history.replaceState;
+  history.replaceState = function () {
+    originalReplaceState.apply(this, arguments);
+    checkCurrentPage();
+  };
+
+  window.addEventListener('popstate', checkCurrentPage);
 })();

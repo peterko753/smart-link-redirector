@@ -42,8 +42,8 @@ async function syncDnrRules() {
 }
 
 // Fallback & Omnibox / Service Worker Navigation Interceptor via webNavigation
-if (chrome.webNavigation && chrome.webNavigation.onBeforeNavigate) {
-  chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+if (chrome.webNavigation) {
+  const handleNav = async (details) => {
     // Only intercept top-level main frame navigations
     if (details.frameId !== 0) return;
 
@@ -59,7 +59,14 @@ if (chrome.webNavigation && chrome.webNavigation.onBeforeNavigate) {
     } catch (err) {
       console.warn('[Redirector] webNavigation error:', err);
     }
-  });
+  };
+
+  if (chrome.webNavigation.onBeforeNavigate) {
+    chrome.webNavigation.onBeforeNavigate.addListener(handleNav);
+  }
+  if (chrome.webNavigation.onHistoryStateUpdated) {
+    chrome.webNavigation.onHistoryStateUpdated.addListener(handleNav);
+  }
 }
 
 // Debug rule matches when available

@@ -59,6 +59,8 @@ function compileDnrRules(rules, isMasterEnabled = true) {
         const targetUrl = (rule.targetUrl || '').trim();
         if (!sourceUrl || !targetUrl) continue;
 
+        // Remove trailing slash/pipe to allow matches with tracking query params (?source=...)
+        const cleanFilter = sourceUrl.replace(/[|]+$/, '');
         dnrRules.push({
           id: rule.numericId,
           priority: 2,
@@ -69,7 +71,7 @@ function compileDnrRules(rules, isMasterEnabled = true) {
             }
           },
           condition: {
-            urlFilter: `|${sourceUrl}|`,
+            urlFilter: `|${cleanFilter}`,
             resourceTypes: ['main_frame', 'sub_frame']
           }
         });
@@ -135,7 +137,8 @@ function simulateRedirect(inputUrl, rules, isMasterEnabled = true) {
         };
       }
     } else if (rule.type === 'exact') {
-      if (parsedUrl.href === rule.sourceUrl.trim()) {
+      const srcUrl = (rule.sourceUrl || '').trim();
+      if (parsedUrl.href === srcUrl) {
         return {
           redirected: true,
           originalUrl: parsedUrl.href,
@@ -143,6 +146,20 @@ function simulateRedirect(inputUrl, rules, isMasterEnabled = true) {
           matchedRule: rule
         };
       }
+      // Base URL match (handles tracking query parameters like ?source=..., ?sk=... or trailing /)
+      try {
+        const ruleParsed = new URL(srcUrl.startsWith('http') ? srcUrl : `https://${srcUrl}`);
+        const cleanInput = (parsedUrl.origin + parsedUrl.pathname).replace(/\/+$/, '');
+        const cleanRule = (ruleParsed.origin + ruleParsed.pathname).replace(/\/+$/, '');
+        if (cleanInput === cleanRule) {
+          return {
+            redirected: true,
+            originalUrl: parsedUrl.href,
+            finalUrl: rule.targetUrl.trim(),
+            matchedRule: rule
+          };
+        }
+      } catch (e) {}
     } else if (rule.type === 'regex') {
       try {
         const re = new RegExp(rule.regexPattern.trim());
